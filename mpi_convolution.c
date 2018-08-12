@@ -92,9 +92,7 @@ int main (int argc, char* argv[])
   loops=atoi(argv[5]);
 
   MPI_File_open( MPI_COMM_WORLD, argv[1],MPI_MODE_RDONLY, MPI_INFO_NULL, &image_File );
-  //MPI_File_close( &image_File );
 
-  if(rank==4){
 
   int block_heigth=height/sqrt(size);
   int block_width=width/sqrt(size);
@@ -128,35 +126,32 @@ int main (int argc, char* argv[])
     }
 
 
-  FILE *f = fopen("image4.raw", "wb");
+//  unsigned char
 
+
+ MPI_Send(buffer, 10, MPI_INT, 1, 123, MPI_COMM_WORLD);
+ MPI_Recv(buffer, 10, MPI_INT, 0, 123, MPI_COMM_WORLD, &status);
+  //MPI_File_close( &image_File );
+
+  fclose(f);
+  for(i=0;i<block_heigth;i++)
+    free(image_array[i]);
+  free(image_array);
+  MPI_Finalize(); /* finish MPI */
+  return 0;
+}
+
+  //FILE *f = fopen("image4.raw", "wb");
+
+/*
   for(int k=1;k<block_heigth+2-1;k++){
       for(int l=3;l<3*(block_width+2)-3;l++){
         putc(image_array[k][l], f);
       }
     }
 
-  fclose(f);
-  for(i=0;i<block_heigth;i++)
-    free(image_array[i]);
-  free(image_array);
-}
-
-  MPI_Finalize(); /* finish MPI */
-  return 0;
-}
-/*FILE *image_raw;
-unsigned char *matriz_image;
-
-image_raw = fopen("waterfall_grey_1920_2520.raw", "rb");
-int height=1920;
-int width=2520;
-
-printf("%s\n",argv[1] );
-
-matriz_image = (unsigned char *) malloc (height*width*sizeof(unsigned  char));
-fread(matriz_image, sizeof(char), width*height/2, image_raw);
-//for(int i=0;i<width*height;i++)
-//  matriz_image[i]=matriz_image[i]+162;
-FILE *f = fopen("image.raw", "wb");
-fwrite(matriz_image, sizeof(char), width*height/2, f);*/
+    for(int k=1;k<block_heigth+2-1;k++){
+        for(int l=1;l<(block_width+2)-1;l++){
+          putc(image_array[k][l], f);
+        }
+      }*/
