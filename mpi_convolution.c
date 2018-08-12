@@ -1,0 +1,162 @@
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <math.h>
+//rgb or grey--height--width loops
+void print_err(int err){
+  if(err==-1)
+    fprintf(stderr, "Not enough arguments-(Value of errno: %d)\n\n", err);
+  else if(err==-2)
+    fprintf(stderr, "Loops must be more than 0-(Value of errno: %d)\n\n", err);
+  else if(err==-3)
+    fprintf(stderr, "The processes should be an integer(>1) to the 2nd power-(Value of errno: %d)\n\n", err);
+  else if(err==-4)
+    fprintf(stderr, "The image type is wrong[ONLY GREY AND RGB ARE SUPPORTED]-(Value of errno: %d)\n\n", err);
+  else if(err==-5)
+    fprintf(stderr, "The image's dimensions do not allow it to be divided into equal blocks-(Value of errno: %d)\n\n", err);
+  else if(err==-6)
+    fprintf(stderr, "The image does not exist-(Value of errno: %d)\n\n", err);
+  else if(err==-7)
+    fprintf(stderr, "Dimensions or type of image is wrong-(Value of errno: %d)\n\n", err);
+  return;
+}
+
+int check_info(int argc,char** argv,int size){
+  int err=0;
+  if(argc!=6){ print_err(-1); err=-1;  return err;}
+
+  int loops=atoi(argv[5]);
+  if(loops<=0){ print_err(-2); err=-2;}
+
+  if(sqrt(size)*sqrt(size)!=size||size==1){ print_err(-3); err=-3;}
+
+  char type[5];
+  strcpy(type,argv[2]);
+  if((strcmp(type,"RGB")!=0)&&(strcmp(type,"GREY")!=0))
+  { print_err(-4); err=-4;}
+
+  int height=atoi(argv[3]),width=atoi(argv[4]);
+  if((height%(int)sqrt(size)!=0)||(width%(int)sqrt(size)!=0)){ print_err(-5); err=-5;}
+
+  FILE *image_raw;
+  image_raw = fopen(argv[1], "rb");
+  if (!image_raw){print_err(-6); err=-6;}
+  else{
+    fseek(image_raw, 0L, SEEK_END);
+    if(!strcmp(type,"RGB")){
+      if(ftell(image_raw)!=3*height*width){ print_err(-7); err=-7;}
+    }
+    else
+      if(ftell(image_raw)!=height*width){ print_err(-7); err=-7;}
+
+    fclose(image_raw);
+  }
+
+  return err;
+}
+
+int main (int argc, char* argv[])
+{
+  int rank, size;
+  int height,width,loops;
+  char type[5];
+  int i;
+  int image;
+  int  err[1];
+  MPI_Request req;
+  MPI_Status sta;
+  MPI_File image_File;
+
+  MPI_Init (&argc, &argv);      /* starts MPI */
+  MPI_Comm_rank (MPI_COMM_WORLD, &rank);        /* get current process id */
+  MPI_Comm_size (MPI_COMM_WORLD, &size);        /* get number of processes */
+  if(!rank){
+
+    err[0]=check_info(argc,argv,size);
+
+    for(i=1;i<size;i++)
+      MPI_Send(err, 1, MPI_INT, i, 123, MPI_COMM_WORLD);
+    if(err[0]!=0)
+      MPI_Abort(MPI_COMM_WORLD, -1);
+  }
+  else{
+     MPI_Irecv(err, 1, MPI_INT, 0, 123, MPI_COMM_WORLD, &req);
+     MPI_Wait(&req, &sta);//wait for the process 0 to finish with checking arguments
+     if(err[0]!=0)
+        MPI_Finalize();
+  }
+
+  height=atoi(argv[3]);
+  width=atoi(argv[4]);
+  loops=atoi(argv[5]);
+
+  MPI_File_open( MPI_COMM_WORLD, argv[1],MPI_MODE_RDONLY, MPI_INFO_NULL, &image_File );
+  //MPI_File_close( &image_File );
+
+  if(rank==4){
+
+  int block_heigth=height/sqrt(size);
+  int block_width=width/sqrt(size);
+
+  unsigned char **image_array;
+
+  image_array=(unsigned char **)malloc((block_heigth+2)*sizeof(unsigned char *));
+
+  if(!strcmp(argv[2],"RGB"))
+    for(i=0;i<block_heigth+2;i++)
+      image_array[i]=(unsigned char *)malloc(3*(block_width+2)*sizeof(unsigned char ));
+  else
+    for(i=0;i<block_heigth+2;i++)
+      image_array[i]=(unsigned char *)malloc((block_width+2)*sizeof(unsigned char ));
+
+      for(int k=0;k<block_heigth;k++){
+        for(int l=0;l<block_width+2;l++){
+          image_array[k][l]=0;
+        }
+      }
+
+  if(!strcmp(argv[2],"RGB"))
+    for(int k=0;k<block_heigth;k++){
+      MPI_File_seek(image_File,3*(k*width+(rank/(int)sqrt(size))*block_heigth*width+(rank%(int)sqrt(size))*block_width), MPI_SEEK_SET );
+      MPI_File_read(image_File,&image_array[k][3] ,3*block_width, MPI_BYTE, &sta );
+    }
+  else
+    for(int k=0;k<block_heigth;k++){
+      MPI_File_seek(image_File,k*width+(rank/(int)sqrt(size))*block_heigth*width+(rank%(int)sqrt(size))*block_width, MPI_SEEK_SET );
+      MPI_File_read(image_File,&image_array[k][1], block_width, MPI_BYTE, &sta );
+    }
+
+
+  FILE *f = fopen("image4.raw", "wb");
+
+  for(int k=1;k<block_heigth+2-1;k++){
+      for(int l=3;l<3*(block_width+2)-3;l++){
+        putc(image_array[k][l], f);
+      }
+    }
+
+  fclose(f);
+  for(i=0;i<block_heigth;i++)
+    free(image_array[i]);
+  free(image_array);
+}
+
+  MPI_Finalize(); /* finish MPI */
+  return 0;
+}
+/*FILE *image_raw;
+unsigned char *matriz_image;
+
+image_raw = fopen("waterfall_grey_1920_2520.raw", "rb");
+int height=1920;
+int width=2520;
+
+printf("%s\n",argv[1] );
+
+matriz_image = (unsigned char *) malloc (height*width*sizeof(unsigned  char));
+fread(matriz_image, sizeof(char), width*height/2, image_raw);
+//for(int i=0;i<width*height;i++)
+//  matriz_image[i]=matriz_image[i]+162;
+FILE *f = fopen("image.raw", "wb");
+fwrite(matriz_image, sizeof(char), width*height/2, f);*/
