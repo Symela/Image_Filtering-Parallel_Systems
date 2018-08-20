@@ -115,25 +115,75 @@ int main (int argc, char* argv[])
       }
 
   if(!strcmp(argv[2],"RGB"))
-    for(int k=0;k<block_heigth;k++){
+    for(int k=0;k<block_heigth-1;k++){
       MPI_File_seek(image_File,3*(k*width+(rank/(int)sqrt(size))*block_heigth*width+(rank%(int)sqrt(size))*block_width), MPI_SEEK_SET );
-      MPI_File_read(image_File,&image_array[k][3] ,3*block_width, MPI_BYTE, &sta );
+      MPI_File_read(image_File,&image_array[k+1][3] ,3*block_width, MPI_BYTE, &sta );
     }
   else
-    for(int k=0;k<block_heigth;k++){
+    for(int k=0;k<block_heigth-1;k++){
       MPI_File_seek(image_File,k*width+(rank/(int)sqrt(size))*block_heigth*width+(rank%(int)sqrt(size))*block_width, MPI_SEEK_SET );
-      MPI_File_read(image_File,&image_array[k][1], block_width, MPI_BYTE, &sta );
+      MPI_File_read(image_File,&image_array[k+1][1], block_width, MPI_BYTE, &sta );
     }
 
 
-//  unsigned char
+  unsigned char * buffer_send;
+  unsigned char * buffer_recv;
+
+  int north,north_east,east,south_east,south,south_west,west,north_west;
+  north=rank-sqrt(size);
+  north_east=rank-sqrt(size)+1;
+  east=rank+1;
+  south_east=rank+sqrt(size)+1;
+  south=rank+sqrt(size);
+  south_west=rank+sqrt(size)-1;
+  west=rank-1;
+  north_west=rank-sqrt(size)-1;
+
+  if(block_heigth>block_width){
+    buffer_send=(unsigned char *)malloc((block_heigth)*sizeof(unsigned char ));
+    buffer_recv=(unsigned char *)malloc((block_heigth)*sizeof(unsigned char ));
+  }
+  else{
+    buffer_send=(unsigned char *)malloc((block_width)*sizeof(unsigned char ));
+    buffer_recv=(unsigned char *)malloc((block_width)*sizeof(unsigned char ));
+  }
+  //send RGB
+  if(!strcmp(argv[2],"RGB"))
+  {
+    if(north>=0&&north<size){
+      buffer_send=image_array[1][3]
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 1, MPI_COMM_WORLD);
+    }
+    if(north_east>=0&&north_east<size){
+      buffer_send=image_array[1][3*(block_width-1)]
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 2, MPI_COMM_WORLD);
+    }
+    if(east>=0&&east<size){
+      for(int i=1;i<block_heigth;i++)
+       buffer_send=image_array[i][3*(block_width-1)]
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 3, MPI_COMM_WORLD);
+    }
+    if(south_east>=0&&south_east<size){
+      buffer_send=image_array[block_heigth-2][3*(block_width-1)]
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 4, MPI_COMM_WORLD);
+    }
+    if(south>=0&&south<size){
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 5, MPI_COMM_WORLD);
+    }
+    if(south_west>=0&&south_west<size){
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 6, MPI_COMM_WORLD);
+    }
+    if(west>=0&&west<size){
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 7, MPI_COMM_WORLD);
+    }
+    if(north_west>=0&&north_west<size){
+      MPI_Send(buffer_send, 10, MPI_BYTE, 1, 8, MPI_COMM_WORLD);
+    }
+  }
+
+ MPI_File_close( &image_File );
 
 
- MPI_Send(buffer, 10, MPI_INT, 1, 123, MPI_COMM_WORLD);
- MPI_Recv(buffer, 10, MPI_INT, 0, 123, MPI_COMM_WORLD, &status);
-  //MPI_File_close( &image_File );
-
-  fclose(f);
   for(i=0;i<block_heigth;i++)
     free(image_array[i]);
   free(image_array);
