@@ -37,7 +37,7 @@ __global__ void kernel_rgb(uint8_t* start, uint8_t* end, int height, int width)
   size_t x = blockIdx.x * blockDim.x + threadIdx.x;
   size_t y = blockIdx.y * blockDim.y + threadIdx.y;
 
-  if (0 < x && x < height-1 && 0 < y && y < width-1) {
+  if (0 < x && x < height-1 && 0 < y && y < (3*width)-3) {
     float new_val_red, new_val_blue, new_val_green;
     new_val_red = 0;
     new_val_blue = 0;
