@@ -8,7 +8,7 @@
 #include <unistd.h>
 #include <cuda.h>
 
-extern void filtering( uint8_t* table, int height, int width, int loops, char* type );
+extern void filtering( uint8_t* table, int height, int width, int loops, char* type, int blocksize );
 
 // PRINT ERRORS -----------------------------------------------------------------------------------------------
 void print_err(int err){
@@ -16,8 +16,12 @@ void print_err(int err){
     fprintf(stderr, "Not enough arguments-(Value of errno: %d)\n\n", err);
   else if(err==-2)
     fprintf(stderr, "Loops must be more than 0-(Value of errno: %d)\n\n", err);
+  else if(err==-3)
+    fprintf(stderr, "Block size must be more than 0 and smaller than the image's height and width-(Value of errno: %d)\n\n", err);
   else if(err==-4)
     fprintf(stderr, "The image type is wrong[ONLY GREY AND RGB ARE SUPPORTED]-(Value of errno: %d)\n\n", err);
+  else if(err==-5)
+    fprintf(stderr, "The image's dimensions do not allow it to be divided into equal blocks-(Value of errno: %d)\n\n", err);
   else if(err==-6)
     fprintf(stderr, "The image does not exist-(Value of errno: %d)\n\n", err);
   else if(err==-7)
@@ -26,9 +30,9 @@ void print_err(int err){
 }
 
 // CHECK ARGUMENTS -----------------------------------------------------------------------------------------------
-int check_info(int argc, char** argv, int* height, int* width, int* loops, char** image, char** type){
+int check_info(int argc, char** argv, int* blocksize, int* height, int* width, int* loops, char** image, char** type){
   int err=0;
-  if(argc!=6){ print_err(-1); err=-1;  return err;}
+  if(argc!=7){ print_err(-1); err=-1;  return err;}
 
   (*loops)=atoi(argv[5]);
   if((*loops)<=0){ print_err(-2); err=-2;}
@@ -39,6 +43,9 @@ int check_info(int argc, char** argv, int* height, int* width, int* loops, char*
 
   (*height)=atoi(argv[3]);
   (*width)=atoi(argv[4]);
+  (*blocksize)=atoi(argv[6]);
+  if((*blocksize)<=0 || (*blocksize)>(*height) || (*blocksize)>(*width)){ print_err(-3); err=-3;}
+  if(((*height)%(*blocksize)!=0)||((*width)%(*blocksize)!=0)){ print_err(-5); err=-5;}
 
   FILE *image_raw;
   image_raw = fopen(argv[1], "rb");
@@ -72,13 +79,13 @@ int check_info(int argc, char** argv, int* height, int* width, int* loops, char*
 // MAIN -----------------------------------------------------------------------------------------------
 int main(int argc, char* argv[])
 {
-  int height, width, loops, image_fd; // upsos, platos, epanalipseis kai fd gia to arxeio ths eikonas
+  int height, width, loops, blocksize, image_fd; // upsos, platos, epanalipseis kai fd gia to arxeio ths eikonas
   char* image, *type; // h eikona kai tupos ths: GREY or RGB
   size_t bytes;
 
   type = (char*)malloc(5*sizeof(char));
 
-  if(check_info(argc, argv, &height, &width, &loops, &image, &type) != 0) return -1; // check ta arguments
+  if(check_info(argc, argv, &blocksize, &height, &width, &loops, &image, &type) != 0) return -1; // check ta arguments
 
   uint8_t *table = NULL;
 
@@ -109,7 +116,7 @@ int main(int argc, char* argv[])
   close(image_fd);
 
   // CUDA FUNCTIONS --------------------------------------
-  filtering(table, height, width, loops, type);
+  filtering(table, height, width, loops, type, blocksize);
   // -----------------------------------------------------
 
   // apothikeush se arxeio ths alagmenhs eikonas
