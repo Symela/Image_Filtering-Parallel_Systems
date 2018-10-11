@@ -263,15 +263,8 @@ __global__ int kernel_grey_equal(uint8_t* start, uint8_t* end, int height, int w
   size_t x = blockIdx.x * blockDim.x + threadIdx.x;
   size_t y = blockIdx.y * blockDim.y + threadIdx.y;
 
-  int i, j;
-
-  for (i = x; i <= height-1 ; i++) {
-    for (j = y; j <= width-1 ; j++) {
-      if(start[width * i + j] == end[width * i + j]) continue;
-      else return 0;
-    }
-  }
-  return 1;
+  if(start[width * x + y] == end[width * x + y]) return 1;
+  else return 0;
 }
 
 
@@ -280,15 +273,8 @@ __global__ int kernel_rgb_equal(uint8_t* start, uint8_t* end, int height, int wi
   size_t x = blockIdx.x * blockDim.x + threadIdx.x;
   size_t y = blockIdx.y * blockDim.y + threadIdx.y;
 
-  int i, j;
-
-  for (i = x; i <= height-1 ; i++) {
-    for (j = y; j <= (3*width)-3 ; j += 3) {
-      if(start[(width*3) * i + j] == end[(width*3) * i + j] && start[(width*3) * i + j + 1] == end[(width*3) * i + j + 1] && start[(width*3) * i + j + 2] == end[(width*3) * i + j + 2] ) continue;
-      else return 0;
-    }
-  }
-  return 1;
+  if(start[(width*3) * x + y] == end[(width*3) * x + y] && start[(width*3) * x + y + 1] == end[(width*3) * x + y + 1] && start[(width*3) * x + y + 2] == end[(width*3) * x + y + 2] ) return 1;
+  else return 0;
 }
 
 
