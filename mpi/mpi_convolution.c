@@ -64,6 +64,7 @@ int main (int argc, char* argv[])
   int i;
   int image;
   int  err[1];
+  double start ,time_s;
   MPI_Request req;
   MPI_Status sta;
   MPI_File image_File,output_File;
@@ -206,10 +207,10 @@ int main (int argc, char* argv[])
   float gaussian_blur[3][3] = {{1.0/16, 2.0/16, 1.0/16}, {2.0/16, 4.0/16, 2.0/16}, {1.0/16, 2.0/16, 1.0/16}};
   float kernel[3][3];
 
+
   for(int i=0;i<3;i++)
     for(int j=0;j<3;j++)
       kernel[i][j]=gaussian_blur[2-i][2-j];
-
 
   MPI_Status status;
 
@@ -229,6 +230,7 @@ int main (int argc, char* argv[])
       se[i]=-1;
       sw[i]=-1;
     }
+     start = MPI_Wtime();
 for(int i=0;i<loops;i++){
     //send to neighbours
     if(north>=0&&north<size){
@@ -319,15 +321,95 @@ for(int i=0;i<loops;i++){
           for(int j=3;j<new_block_width-3;j++){
             image_conv[i*new_block_width+j]=0;
             for(int k=0;k<3;k++)
-              for(int l=0;l<3;l++)
-                image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j +(k-1)*new_block_width +(l-1)*3];
+              for(int l=0;l<3;l++){
+                int s=0;
+                if(north_east<0||north_east>=size){
+                  if(i==1&&j>=new_block_width-6)
+                    if(k==0&&l==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(north_west<0||north_west>=size){
+                  if(i==1&&(j>=3||j<6))
+                    if(k==0&&l==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(south_east<0||south_east>=size){
+                  if(i==new_block_heigth-2&&j>=new_block_width-6)
+                    if(k==2&&l==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+
+                }
+                else if(south_west<0||south_west>=size){
+                  if(i==new_block_heigth-2&&(j>=3||j<6))
+                    if(k==2&&l==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(north<0||north>=size){
+                  if(i==1)
+                    if(k==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(east<0||east>=size){
+                  if(j>=new_block_width-6)
+                    if(l==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+                }
+                else if(south<0||south>=size){
+                  if(i==new_block_heigth-2)
+                    if(k==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(west<0||west>=size){
+                  if(j<6)
+                    if(l==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+                }
+
+                if(s==0)
+                  image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j +(k-1)*new_block_width +(l-1)*3];
+              }
           }
 
           temp=image_conv;
           image_conv=image_array;
           image_array=temp;
+          int diff=0;
+          for(int i=1;i<new_block_heigth-1;i++){
+            for(int j=3;j<new_block_width-3;j++)
+              if (image_conv[i*new_block_width+j]!=image_array[i*new_block_width+j]){
+                diff++;
+                break;
+              }
+            if(diff==1)
+              break;
+          }
+          if(diff==0)
+            continue;
 
       }
+
   }
   else{
 
@@ -341,6 +423,8 @@ for(int i=0;i<loops;i++){
 
     uint8_t se=-1;
     uint8_t sw=-1;
+    start = MPI_Wtime();
+
     for(int i=0;i<loops;i++){
 
     //send to neighbours
@@ -424,32 +508,96 @@ for(int i=0;i<loops;i++){
             image_conv[i*new_block_width+j]=0;
             for(int k=0;k<3;k++)
               for(int l=0;l<3;l++){
-                image_conv[i*new_block_width+j]+=(float)kernel[k][l]*image_array[i*new_block_width+j +(k-1)*new_block_width +(l-1)*1];
+                int s=0;
+                if(north_east<0||north_east>=size){
+                  if(i==1&&j>=new_block_width-2)
+                    if(k==0&&l==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
 
+                }
+                else if(north_west<0||north_west>=size){
+                  if(i==1&&(j>=1||j<2))
+                    if(k==0&&l==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(south_east<0||south_east>=size){
+                  if(i==new_block_heigth-2&&j>=new_block_width-2)
+                    if(k==2&&l==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+
+                }
+                else if(south_west<0||south_west>=size){
+                  if(i==new_block_heigth-2&&(j>=1||j<2))
+                    if(k==2&&l==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(north<0||north>=size){
+                  if(i==1)
+                    if(k==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(east<0||east>=size){
+                  if(j>=new_block_width-2)
+                    if(l==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+                }
+                else if(south<0||south>=size){
+                  if(i==new_block_heigth-2)
+                    if(k==2){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+
+                }
+                else if(west<0||west>=size){
+                  if(j<2)
+                    if(l==0){
+                      image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j];
+                      s=1;
+                    }
+                }
+
+                if(s==0)
+                  image_conv[i*new_block_width+j]+=kernel[k][l]*image_array[i*new_block_width+j +(k-1)*new_block_width +(l-1)*1];
               }
           }
 
           temp=image_conv;
           image_conv=image_array;
           image_array=temp;
+          int diff=0;
+          for(int i=1;i<new_block_heigth-1;i++){
+            for(int j=1;j<new_block_width-1;j++)
+              if (image_conv[i*new_block_width+j]!=image_array[i*new_block_width+j]){
+                diff++;
+                break;
+              }
+            if(diff==1)
+              break;
+          }
+          if(diff==0)
+            continue;
 
     }
+
   }
-/*
-  char  strfile[20]="image";
-   strfile[5]=rank +'0';
-   strfile[6]='.';
-   strfile[7]='r';
-   strfile[8]='a';
-   strfile[9]='w';
 
-  //printf("%s\n",strfile );
-   FILE *f = fopen(strfile, "wb");
-   for(int k=0;k<(block_heigth+2)*(block_width+2);k++){
-         putc(image_array[k], f);
-
-}
-*/
 
   int rc = MPI_File_open( MPI_COMM_WORLD, "out.raw", MPI_MODE_WRONLY | MPI_MODE_CREATE, MPI_INFO_NULL, &output_File );
 
@@ -467,11 +615,27 @@ for(int i=0;i<loops;i++){
       MPI_File_write_at(output_File,k*width+(rank/(int)sqrt(size))*block_heigth*width+(rank%(int)sqrt(size))*block_width,&image_array[(k+1)*(block_width+2)+1], block_width, MPI_BYTE, &sta );
     }
   MPI_File_close( &output_File );
+  time_s =  MPI_Wtime() -  start  ;
+  double max_time=0.0;
+  double proc_time;
 
+  if (rank)
+    MPI_Send(&time_s, 1, MPI_DOUBLE, 0, 0, MPI_COMM_WORLD);
+  else{
+    for (i = 1 ; i != size ; ++i) {
+      MPI_Recv(&proc_time, 1, MPI_DOUBLE, i, 0, MPI_COMM_WORLD, &sta);
+      if (proc_time > max_time)
+        max_time = proc_time;
+    }
+  }
+  if (!rank)
+  printf("Maximum time from all processes is: %f\n",max_time);
 
 //  for(i=0;i<block_heigth;i++)
   //  free(image_array[i]);
   free(image_array);
+  free(image_conv);
+
   MPI_Finalize(); /* finish MPI */
   return 0;
 }
