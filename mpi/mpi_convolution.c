@@ -406,7 +406,7 @@ for(int i=0;i<loops;i++){
               break;
           }
           if(diff==0)
-            continue;
+            break;
 
       }
 
@@ -592,7 +592,7 @@ for(int i=0;i<loops;i++){
               break;
           }
           if(diff==0)
-            continue;
+            break;
 
     }
 
