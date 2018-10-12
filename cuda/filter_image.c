@@ -88,6 +88,11 @@ int main(int argc, char* argv[])
   if(check_info(argc, argv, &blocksize, &height, &width, &loops, &image, &type) != 0) return -1; // check ta arguments
 
   uint8_t *table = NULL;
+  uint64_t start_time, end_time;
+  struct timeval st, et;
+
+  gettimeofday(&st, NULL);
+  start_time = st.tv_sec * 1000000 + st.tv_usec;
 
   image_fd = open(image, O_RDONLY); // anoikse thn eikona kai diavase thn
   if(image_fd < 0)
@@ -121,12 +126,13 @@ int main(int argc, char* argv[])
 
   // apothikeush se arxeio ths alagmenhs eikonas
   int fd_changed_image;
-  char *changed_image;
+  // char *changed_image;
+  //
+  // changed_image = (char*)malloc( (strlen(image))*sizeof(char) );
+  // strcpy(changed_image, image);
 
-  changed_image = (char*)malloc( (strlen(image))*sizeof(char) );
-  strcpy(changed_image, image);
-
-  fd_changed_image = open(changed_image, O_CREAT|O_WRONLY, 0644);
+  // fd_changed_image = open(changed_image, O_CREAT|O_WRONLY, 0644);
+  fd_changed_image = open("filtered.raw", O_CREAT|O_WRONLY, 0644);
 
   if( fd_changed_image == -1 )
   {
@@ -134,7 +140,7 @@ int main(int argc, char* argv[])
     free(type);
     free(image);
     free(table);
-    free(changed_image);
+    // free(changed_image);
     return -1;
   }
 
@@ -148,16 +154,19 @@ int main(int argc, char* argv[])
       free(table);
       free(type);
       free(image);
-      free(changed_image);
+      // free(changed_image);
       return -1;
     }
     i += j;
   }
   close(fd_changed_image);
-  free(changed_image);
+  // free(changed_image);
+
+  gettimeofday(&et, NULL);
+  end_time = et.tv_sec * 1000000 + et.tv_usec;
 
   free(table);
 
-  printf("height: %d, width: %d, loops: %d, type: %s\n", height, width, loops, type);
+  printf("height: %d, width: %d, loops: %d, type: %s and execution time: %.3f sec\n", height, width, loops, type, (end_time-start_time)/1000000);
   return 0;
 }
