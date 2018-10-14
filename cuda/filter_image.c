@@ -6,6 +6,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <sys/time.h>
+#include <math.h>
 #include <unistd.h>
 #include <cuda.h>
 
@@ -46,7 +47,7 @@ int check_info(int argc, char** argv, int* blocksize, int* height, int* width, i
   (*width)=atoi(argv[4]);
   (*blocksize)=atoi(argv[6]);
   if((*blocksize)<=0 || (*blocksize)>(*height) || (*blocksize)>(*width)){ print_err(-3); err=-3;}
-  if(((*height)%(*blocksize)!=0)||((*width)%(*blocksize)!=0)){ print_err(-5); err=-5;}
+  if(((*height)%(int)sqrt(*blocksize)!=0)||((*width)%(int)sqrt(*blocksize)!=0)){ print_err(-5); err=-5;}
 
   FILE *image_raw;
   image_raw = fopen(argv[1], "rb");
@@ -92,6 +93,7 @@ int main(int argc, char* argv[])
   uint64_t start_time, end_time;
   struct timeval st, et;
 
+  // xronos ekkinhshs
   gettimeofday(&st, NULL);
   start_time = st.tv_sec * 1000000 + st.tv_usec;
 
@@ -125,14 +127,9 @@ int main(int argc, char* argv[])
   filtering(table, height, width, loops, type, blocksize);
   // -----------------------------------------------------
 
-  // apothikeush se arxeio ths alagmenhs eikonas
+  // dhmiourgia tou arxeiou "filtered.raw"
   int fd_changed_image;
-  // char *changed_image;
-  //
-  // changed_image = (char*)malloc( (strlen(image))*sizeof(char) );
-  // strcpy(changed_image, image);
 
-  // fd_changed_image = open(changed_image, O_CREAT|O_WRONLY, 0644);
   fd_changed_image = open("filtered.raw", O_CREAT|O_WRONLY, 0644);
 
   if( fd_changed_image == -1 )
@@ -141,10 +138,10 @@ int main(int argc, char* argv[])
     free(type);
     free(image);
     free(table);
-    // free(changed_image);
     return -1;
   }
 
+  // kai apothikeush se auto ths alagmenhs eikonas
   i = 0;
   j = 0;
   while(i < bytes)
@@ -155,19 +152,19 @@ int main(int argc, char* argv[])
       free(table);
       free(type);
       free(image);
-      // free(changed_image);
       return -1;
     }
     i += j;
   }
   close(fd_changed_image);
-  // free(changed_image);
 
+  // xronos oloklhrwshs
   gettimeofday(&et, NULL);
   end_time = et.tv_sec * 1000000 + et.tv_usec;
 
   free(table);
 
+  // emfanish xronou ekteleshs
   printf("height: %d, width: %d, loops: %d, type: %s and execution time: %.3f sec\n", height, width, loops, type, (end_time-start_time)/1000000.0);
   return 0;
 }

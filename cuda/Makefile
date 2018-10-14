@@ -1,5 +1,5 @@
 cuda_ex: filter_image.o cuda_functions.o
-	nvcc -o cuda_ex filter_image.o cuda_functions.o -O2
+	nvcc -o cuda_ex filter_image.o cuda_functions.o -O2 -lm
 
 filter_image.o: filter_image.c
 	gcc -c filter_image.c -O2
