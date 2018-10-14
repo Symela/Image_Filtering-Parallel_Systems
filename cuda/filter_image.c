@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <sys/time.h>
 #include <unistd.h>
 #include <cuda.h>
 
@@ -167,6 +168,6 @@ int main(int argc, char* argv[])
 
   free(table);
 
-  printf("height: %d, width: %d, loops: %d, type: %s and execution time: %.3f sec\n", height, width, loops, type, (end_time-start_time)/1000000);
+  printf("height: %d, width: %d, loops: %d, type: %s and execution time: %.3f sec\n", height, width, loops, type, (end_time-start_time)/1000000.0);
   return 0;
 }
