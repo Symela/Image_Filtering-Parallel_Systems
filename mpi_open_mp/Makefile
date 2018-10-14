@@ -1,4 +1,4 @@
-mpi_ex: mpi_open_mp_convolution.o
+mpi_openmp_ex: mpi_open_mp_convolution.o
 	mpicc -o mpi_ex mpi_open_mp_convolution.o -lm -fopenmp
 
 mpi_open_mp_convolution.o: mpi_open_mp_convolution.c
